@@ -6,7 +6,7 @@ uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.StdCtrls,
   FMX.Controls.Presentation, FMX.ScrollBox, FMX.Memo, System.ImageList,
-  FMX.ImgList, System.IOUtils, FMX.ListBox;
+  FMX.ImgList, System.IOUtils, FMX.ListBox, FMX.Objects;
 
 type
   TForm1 = class(TForm)
@@ -19,6 +19,9 @@ type
     Splitter1: TSplitter;
     btnClear: TSpeedButton;
     cbSiteId: TComboBox;
+    btnCopy: TSpeedButton;
+    RoundRect1: TRoundRect;
+    Label1: TLabel;
     procedure Panel2DragOver(Sender: TObject; const Data: TDragObject;
       const Point: TPointF; var Operation: TDragOperation);
     procedure Panel2DragDrop(Sender: TObject; const Data: TDragObject;
@@ -150,6 +153,7 @@ var
   FReplacer : string;
   FStr : string;
   FList : TStringList;
+  ii : Integer;
 begin
   try
     //
@@ -174,8 +178,6 @@ begin
     FList.LoadFromFile('tmp.txt', TEncoding.Default);
     if FList.Count>0 then
     begin
-      var ii : Integer;
-      //var tmp: String;
       for ii := (FList.Count - 1) downto 0 do
       begin
         if (FList[ii].IndexOf('RepeatedMessageSuppressingFilter')>0) then

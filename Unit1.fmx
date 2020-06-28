@@ -3,7 +3,7 @@ object Form1: TForm1
   Top = 0
   Caption = 'SFCC Log merger ver.0.01'
   ClientHeight = 480
-  ClientWidth = 640
+  ClientWidth = 465
   FormFactor.Width = 320
   FormFactor.Height = 480
   FormFactor.Devices = [Desktop]
@@ -12,7 +12,7 @@ object Form1: TForm1
   DesignerMasterStyle = 0
   object Panel1: TPanel
     Align = Top
-    Size.Width = 640.000000000000000000
+    Size.Width = 465.000000000000000000
     Size.Height = 57.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 0
@@ -20,8 +20,8 @@ object Form1: TForm1
       Align = Right
       Images = ImageList1
       ImageIndex = 1
-      Position.X = 560.000000000000000000
-      Size.Width = 80.000000000000000000
+      Position.X = 393.000000000000000000
+      Size.Width = 72.000000000000000000
       Size.Height = 57.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = 'cameratoolbutton'
@@ -32,7 +32,7 @@ object Form1: TForm1
       Align = Left
       Images = ImageList1
       ImageIndex = 0
-      Size.Width = 80.000000000000000000
+      Size.Width = 65.000000000000000000
       Size.Height = 57.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = 'cameratoolbutton'
@@ -45,7 +45,7 @@ object Form1: TForm1
         'TOKYOSTYLE'
         'SANEIbd'
         'TSICore_igarashi')
-      Position.X = 96.000000000000000000
+      Position.X = 136.000000000000000000
       Position.Y = 16.000000000000000000
       Size.Width = 257.000000000000000000
       Size.Height = 22.000000000000000000
@@ -54,43 +54,76 @@ object Form1: TForm1
       TabOrder = 1
       OnChange = cbSiteIdChange
     end
+    object btnCopy: TSpeedButton
+      Align = Left
+      Images = ImageList1
+      ImageIndex = 2
+      Position.X = 65.000000000000000000
+      Size.Width = 64.000000000000000000
+      Size.Height = 57.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = 'cameratoolbutton'
+      Text = 'Exit'
+    end
   end
   object StatusBar1: TStatusBar
     Position.Y = 458.000000000000000000
     ShowSizeGrip = True
-    Size.Width = 640.000000000000000000
+    Size.Width = 465.000000000000000000
     Size.Height = 22.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 1
   end
   object Panel2: TPanel
     Align = Client
-    Size.Width = 640.000000000000000000
+    Size.Width = 465.000000000000000000
     Size.Height = 401.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 2
-    OnDragOver = Panel2DragOver
-    OnDragDrop = Panel2DragDrop
     object Memo1: TMemo
       Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
       DataDetectorTypes = []
       Align = Bottom
-      Position.Y = 184.000000000000000000
-      Size.Width = 640.000000000000000000
-      Size.Height = 217.000000000000000000
+      Position.Y = 288.000000000000000000
+      Size.Width = 465.000000000000000000
+      Size.Height = 113.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 0
-      Viewport.Width = 636.000000000000000000
-      Viewport.Height = 213.000000000000000000
+      Viewport.Width = 461.000000000000000000
+      Viewport.Height = 109.000000000000000000
     end
     object Splitter1: TSplitter
       Align = Bottom
       Cursor = crVSplit
       MinSize = 20.000000000000000000
-      Position.Y = 176.000000000000000000
-      Size.Width = 640.000000000000000000
+      Position.Y = 280.000000000000000000
+      Size.Width = 465.000000000000000000
       Size.Height = 8.000000000000000000
       Size.PlatformDefault = False
+    end
+    object RoundRect1: TRoundRect
+      Align = Client
+      Fill.Kind = None
+      Margins.Left = 10.000000000000000000
+      Margins.Top = 10.000000000000000000
+      Margins.Right = 10.000000000000000000
+      Margins.Bottom = 10.000000000000000000
+      Size.Width = 445.000000000000000000
+      Size.Height = 260.000000000000000000
+      Size.PlatformDefault = False
+      Stroke.Thickness = 5.000000000000000000
+      Stroke.Dash = Dash
+      OnDragOver = Panel2DragOver
+      OnDragDrop = Panel2DragDrop
+    end
+    object Label1: TLabel
+      Align = Center
+      Scale.X = 2.000000000000000000
+      Scale.Y = 2.000000000000000000
+      TextSettings.HorzAlign = Center
+      Text = 'Drop log files here'
+      TabOrder = 3
+      OnDragDrop = Panel2DragDrop
     end
   end
   object ImageList1: TImageList
@@ -781,7 +814,7 @@ object Form1: TForm1
             Name = 'duplicate'
           end>
       end>
-    Left = 112
-    Top = 81
+    Left = 16
+    Top = 73
   end
 end
