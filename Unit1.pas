@@ -34,9 +34,10 @@ type
     procedure btnCopyClick(Sender: TObject);
   private
     { private 宣言 }
-    FLog : TStringList;
+    FRawLog : TStringList;
     //
     procedure LoadLogFile(filepath : string);
+    function GetFilteredLogText(filter: string): string;
   public
     { public 宣言 }
   end;
@@ -50,8 +51,8 @@ implementation
 
 procedure TForm1.btnClearClick(Sender: TObject);
 begin
-  FLog.Clear;
-  Memo1.Lines.Add('総登録行数:'+IntToStr(FLog.Count));
+  FRawLog.Clear;
+  Memo1.Lines.Add('総登録行数:'+IntToStr(FRawLog.Count));
 end;
 
 procedure TForm1.btnCopyClick(Sender: TObject);
@@ -59,9 +60,16 @@ var
   Clipboard: IFMXClipboardService;
   CopyText: string;
 begin
-  CopyText := FLog.Text;
   if TPlatformServices.Current.SupportsPlatformService(IFMXClipboardService, Clipboard) then
   begin
+    if cbSiteId.ItemIndex>0 then
+    begin
+      CopyText := self.GetFilteredLogText(cbSiteId.Items[cbSiteId.ItemIndex]);
+    end
+    else
+    begin
+      CopyText := FRawLog.Text;
+    end;
     Clipboard.SetClipboard(CopyText);
   end;
 end;
@@ -80,21 +88,17 @@ begin
   begin
     Memo1.Lines.Add(cbSiteId.Items[cbSiteId.ItemIndex]);
     FList := TStringList.Create;
-    try
-      FList.BeginUpdate;
-      for ii := 0 to FLog.Count - 1 do
-      begin
-        if (FLog[ii].IndexOf('Sites-'+cbSiteId.Items[cbSiteId.ItemIndex]+'-Site')> 0) or
-           (FLog[ii].IndexOf('/s/'+cbSiteId.Items[cbSiteId.ItemIndex]+'/dw/')> 0)  then
-        begin
-          FList.Add(FLog[ii]);
-        end;
-      end;
-    finally
-      FList.EndUpdate;
-    end;
+    FList.Add(GetFilteredLogText(cbSiteId.Items[cbSiteId.ItemIndex]));
     //
-    FList.SaveToFile('filtered.txt', TEncoding.Default);
+    if not Trim(FList.Text).IsEmpty then
+    begin
+      FList.SaveToFile('filtered.txt', TEncoding.Default);
+    end
+    else
+    begin
+      // モーダルダイアログの表示
+      // FMX.Dialogs.ShowMessage('No log line !. Check SITE-ID please.');
+    end;
     FList.Clear;
     FList.Free;
   end;
@@ -102,10 +106,10 @@ end;
 
 procedure TForm1.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
-  if Assigned(Flog) then
+  if Assigned(FRawLog) then
   begin
-    FLog.Clear;
-    FLog.Free;
+    FRawLog.Clear;
+    FRawLog.Free;
   end;
   //
   Memo1.Lines.Clear;
@@ -113,53 +117,39 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
-  if not Assigned(FLog) then
+  if not Assigned(FRawLog) then
   begin
-    FLog := TStringList.Create;
+    FRawLog := TStringList.Create;
   end;
   //
-  Memo1.Lines.Add('登録行数:'+IntToStr(FLog.Count))
+  Memo1.Lines.Add('登録行数:'+IntToStr(FRawLog.Count))
 end;
 
-{
-procedure TForm1.LoadLogFile(filepath: string);
+function TForm1.GetFilteredLogText(filter: string): string;
 var
-  FReplacer : TFileSearchReplace;
+  FList : TStringList;
+  ii : Integer;
 begin
-  FReplacer := TFileSearchReplace.Create(filepath);
+  FList := TStringList.Create;
   try
-    // -----------------------------------------
-    //  ログ情報を１件、１行に返還する
-    // -----------------------------------------
-    //
-    // LF を一旦全て削除する
-    FReplacer.Replace('','',[rfReplaceAll]);
-    //
-    // パターンにより改めて LF を設定する
-    FReplacer.Replace('','',[rfReplaceAll]);
+    FList.BeginUpdate;
+    for ii := 0 to FRawLog.Count - 1 do
+    begin
+      if (FRawLog[ii].IndexOf('Sites-'+filter+'-Site')>= 0) or
+         (FRawLog[ii].IndexOf('/s/'+filter+'/dw/')>= 0)  then
+      begin
+        FList.Add(FRawLog[ii]);
+      end;
+    end;
   finally
-    FReplacer.Free;
+    FList.EndUpdate;
   end;
+  //
+  //FList.SaveToFile('_filtered.txt', TEncoding.Default);
+  Result := FList.Text;
+  FList.Clear;
+  FList.Free;
 end;
-
-procedure TForm1.LoadLogFile2(filepath: string);
-var
-  FReplacer : TStringList;
-begin
-  FReplacer := TStringList.Create;
-  try
-    FReplacer.LoadFromFile(filepath, TEncoding.UTF8);
-    FReplacer.Text.Replace('\n', '=LF;', [rfReplaceAll]);
-    FReplacer.SaveToFile('nolf.txt');
-    FReplacer.Text.Replace('=LF;[', '\n[', [rfReplaceAll]);
-    FReplacer.SaveToFile('newlf.txt');
-    self.FLog.Append(FReplacer.Text);
-    Memo1.Lines.Add('登録行数:'+IntToStr(FLog.Count))
-  finally
-    FReplacer.Free;
-  end;
-end;
-}
 
 procedure TForm1.LoadLogFile(filepath: string);
 var
@@ -172,12 +162,15 @@ begin
     //
     // ドラッグされたファイルを全て読む
     FReplacer := TFile.ReadAllText(filepath, TEncoding.UTF8);
+    // -----------------------------------------
+    //  ログ情報を１件、１行に返還する
+    // -----------------------------------------
     //
     // 一旦 LF改行を取り除く
     FStr := StringReplace(FReplacer, #10, '=LF;', [rfReplaceAll]);
     FList := TStringList.Create;
-    FList.Add(FStr);
-    FList.SaveToFile('nolf.txt');
+    //FList.Add(FStr);
+    //FList.SaveToFile('nolf.txt');
     //
     // 全てタイムスタンプが先頭になるように改行を挿入する
     //FReplacer := StringReplace(FStr, '=LF;[', #10'[', [rfReplaceAll]); // LF
@@ -199,16 +192,16 @@ begin
         end;
       end;
     end;
-    FList.SaveToFile('newlf2.txt');
+    //FList.SaveToFile('newlf2.txt');
     //
     // ログファイルをマージする
-    FLog.AddStrings(FList);
-    FLog.Sort;
-    FLog.SaveToFile('sorted.txt', TEncoding.Default);
+    FRawLog.AddStrings(FList);
+    FRawLog.Sort;
+    FRawLog.SaveToFile('sorted.txt', TEncoding.Default);
     //
     Memo1.Lines.Add('登録行数:'+IntToStr(FList.Count));
     //Memo1.Lines.AddStrings(FList);
-    Memo1.Lines.Add('総登録行数:'+IntToStr(FLog.Count));
+    Memo1.Lines.Add('総登録行数:'+IntToStr(FRawLog.Count));
   finally
     FReplacer := '';
   end;
