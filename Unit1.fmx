@@ -1,7 +1,8 @@
 object Form1: TForm1
   Left = 0
   Top = 0
-  Caption = 'SFCC Log merger ver.0.01'
+  BorderStyle = ToolWindow
+  Caption = 'SFCC Log merger ver.0.02'
   ClientHeight = 480
   ClientWidth = 465
   FormFactor.Width = 320
@@ -18,28 +19,35 @@ object Form1: TForm1
     TabOrder = 0
     object btnExit: TSpeedButton
       Align = Right
+      Hint = 'Quit application.'
       Images = ImageList1
       ImageIndex = 1
       Position.X = 393.000000000000000000
       Size.Width = 72.000000000000000000
       Size.Height = 57.000000000000000000
       Size.PlatformDefault = False
+      ParentShowHint = False
+      ShowHint = True
       StyleLookup = 'cameratoolbutton'
       Text = 'Exit'
       OnClick = btnExitClick
     end
     object btnClear: TSpeedButton
       Align = Left
+      Hint = 'Clear all log lines.'
       Images = ImageList1
       ImageIndex = 0
       Size.Width = 65.000000000000000000
       Size.Height = 57.000000000000000000
       Size.PlatformDefault = False
+      ParentShowHint = False
+      ShowHint = True
       StyleLookup = 'cameratoolbutton'
       Text = 'Exit'
       OnClick = btnClearClick
     end
     object cbSiteId: TComboBox
+      Hint = 'Filer log lines by selected site id.'
       Items.Strings = (
         '(No Filter)'
         'TOKYOSTYLE'
@@ -52,39 +60,39 @@ object Form1: TForm1
       Size.PlatformDefault = False
       StyleLookup = 'comboboxstyle'
       TabOrder = 1
+      ParentShowHint = False
+      ShowHint = True
       OnChange = cbSiteIdChange
     end
     object btnCopy: TSpeedButton
       Align = Left
+      Hint = 'Copy filtered log lines to clipboard.'
       Images = ImageList1
       ImageIndex = 2
       Position.X = 65.000000000000000000
       Size.Width = 64.000000000000000000
       Size.Height = 57.000000000000000000
       Size.PlatformDefault = False
+      ParentShowHint = False
+      ShowHint = True
       StyleLookup = 'cameratoolbutton'
       Text = 'Exit'
+      OnClick = btnCopyClick
     end
-  end
-  object StatusBar1: TStatusBar
-    Position.Y = 458.000000000000000000
-    ShowSizeGrip = True
-    Size.Width = 465.000000000000000000
-    Size.Height = 22.000000000000000000
-    Size.PlatformDefault = False
-    TabOrder = 1
   end
   object Panel2: TPanel
     Align = Client
     Size.Width = 465.000000000000000000
-    Size.Height = 401.000000000000000000
+    Size.Height = 423.000000000000000000
     Size.PlatformDefault = False
-    TabOrder = 2
+    TabOrder = 1
+    ParentShowHint = False
+    ShowHint = False
     object Memo1: TMemo
       Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
       DataDetectorTypes = []
       Align = Bottom
-      Position.Y = 288.000000000000000000
+      Position.Y = 310.000000000000000000
       Size.Width = 465.000000000000000000
       Size.Height = 113.000000000000000000
       Size.PlatformDefault = False
@@ -96,7 +104,7 @@ object Form1: TForm1
       Align = Bottom
       Cursor = crVSplit
       MinSize = 20.000000000000000000
-      Position.Y = 280.000000000000000000
+      Position.Y = 302.000000000000000000
       Size.Width = 465.000000000000000000
       Size.Height = 8.000000000000000000
       Size.PlatformDefault = False
@@ -109,7 +117,7 @@ object Form1: TForm1
       Margins.Right = 10.000000000000000000
       Margins.Bottom = 10.000000000000000000
       Size.Width = 445.000000000000000000
-      Size.Height = 260.000000000000000000
+      Size.Height = 282.000000000000000000
       Size.PlatformDefault = False
       Stroke.Thickness = 5.000000000000000000
       Stroke.Dash = Dash

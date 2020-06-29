@@ -6,12 +6,12 @@ uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.StdCtrls,
   FMX.Controls.Presentation, FMX.ScrollBox, FMX.Memo, System.ImageList,
-  FMX.ImgList, System.IOUtils, FMX.ListBox, FMX.Objects;
+  FMX.ImgList, System.IOUtils, FMX.ListBox, FMX.Objects,
+  FMX.Platform, System.Rtti;
 
 type
   TForm1 = class(TForm)
     Panel1: TPanel;
-    StatusBar1: TStatusBar;
     Panel2: TPanel;
     Memo1: TMemo;
     btnExit: TSpeedButton;
@@ -31,6 +31,7 @@ type
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure btnClearClick(Sender: TObject);
     procedure cbSiteIdChange(Sender: TObject);
+    procedure btnCopyClick(Sender: TObject);
   private
     { private êÈåæ }
     FLog : TStringList;
@@ -51,6 +52,18 @@ procedure TForm1.btnClearClick(Sender: TObject);
 begin
   FLog.Clear;
   Memo1.Lines.Add('ëçìoò^çsêî:'+IntToStr(FLog.Count));
+end;
+
+procedure TForm1.btnCopyClick(Sender: TObject);
+var
+  Clipboard: IFMXClipboardService;
+  CopyText: string;
+begin
+  CopyText := FLog.Text;
+  if TPlatformServices.Current.SupportsPlatformService(IFMXClipboardService, Clipboard) then
+  begin
+    Clipboard.SetClipboard(CopyText);
+  end;
 end;
 
 procedure TForm1.btnExitClick(Sender: TObject);
