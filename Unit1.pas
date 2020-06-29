@@ -64,12 +64,13 @@ begin
   begin
     if cbSiteId.ItemIndex>0 then
     begin
-      CopyText := self.GetFilteredLogText(cbSiteId.Items[cbSiteId.ItemIndex]);
+      CopyText := GetFilteredLogText(cbSiteId.Items[cbSiteId.ItemIndex]);
     end
     else
     begin
       CopyText := FRawLog.Text;
     end;
+    CopyText := StringReplace(CopyText, '=LF;', #13#10, [rfReplaceAll]);
     Clipboard.SetClipboard(CopyText);
   end;
 end;
@@ -82,13 +83,15 @@ end;
 procedure TForm1.cbSiteIdChange(Sender: TObject);
 var
   FList : TStringList;
-  ii : Integer;
+  FStr : String;
 begin
   if cbSiteId.ItemIndex>0 then
   begin
     Memo1.Lines.Add(cbSiteId.Items[cbSiteId.ItemIndex]);
     FList := TStringList.Create;
-    FList.Add(GetFilteredLogText(cbSiteId.Items[cbSiteId.ItemIndex]));
+    FStr := GetFilteredLogText(cbSiteId.Items[cbSiteId.ItemIndex]);
+    FStr := StringReplace(FStr, '=LF;', #13#10, [rfReplaceAll]);
+    FList.Add(FStr);
     //
     if not Trim(FList.Text).IsEmpty then
     begin
