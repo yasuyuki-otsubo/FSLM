@@ -53,11 +53,6 @@ object Form1: TForm1
     object cbSiteId: TComboBox
       Align = Client
       Hint = 'Filer log lines by selected site id.'
-      Items.Strings = (
-        '(No Filter)'
-        'TOKYOSTYLE'
-        'SANEIbd'
-        'TSICore_igarashi')
       Margins.Top = 20.000000000000000000
       Margins.Bottom = 20.000000000000000000
       Size.Width = 271.000000000000000000
@@ -71,6 +66,7 @@ object Form1: TForm1
     end
     object btnCopy: TSpeedButton
       Align = Left
+      Enabled = False
       Hint = 'Copy filtered log lines to clipboard.'
       Images = ImageList1
       ImageIndex = 2

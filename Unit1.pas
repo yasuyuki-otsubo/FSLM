@@ -38,6 +38,7 @@ type
     //
     procedure LoadLogFile(filepath : string);
     function GetFilteredLogText(filter: string): string;
+    function ExtractSiteID(filter: string): string;
   public
     { public 宣言 }
   end;
@@ -75,7 +76,7 @@ begin
   begin
     //
     // クリップボードへのコピー対象を選択する
-    if cbSiteId.ItemIndex>0 then
+    if cbSiteId.ItemIndex>=0 then
     begin
       // フィルターが選択されている場合、ログをフィルターにて抽出する
       CopyText := GetFilteredLogText(cbSiteId.Items[cbSiteId.ItemIndex]);
@@ -104,7 +105,7 @@ var
   FList : TStringList;
   FStr : String;
 begin
-  if (cbSiteId.Items.Count>0) and (cbSiteId.ItemIndex>0) then
+  if (cbSiteId.Items.Count>0) then
   begin
     Memo1.Lines.Add(cbSiteId.Items[cbSiteId.ItemIndex]);
     FList := TStringList.Create;
@@ -115,14 +116,55 @@ begin
     if not Trim(FList.Text).IsEmpty then
     begin
       FList.SaveToFile('filtered.txt', TEncoding.Default);
-    end
-    else
-    begin
-      // モーダルダイアログの表示
-      // FMX.Dialogs.ShowMessage('No log line !. Check SITE-ID please.');
     end;
     FList.Clear;
     FList.Free;
+  end;
+end;
+
+function TForm1.ExtractSiteID(filter: string): string;
+var
+  sidx: integer;
+  eidx: integer;
+begin
+  //
+  // デフォルト戻り値を設定する。サイトIDが無い場合は''を返す。
+  result := '';
+  //
+  sidx := filter.IndexOf('Sites-');
+  if sidx>0 then
+  begin
+    eidx := filter.IndexOf('-Site');
+    if eidx>0 then
+    begin
+      //
+      // パイプライン実行ログからサイトIDを取得する
+      result := filter.Substring(sidx+Length('Sites-'), eidx-sidx-Length('Sites-'));
+    end
+  end
+  else
+  begin
+    sidx := filter.IndexOf('/servlet/s/');
+    if sidx>0 then
+    begin
+      eidx := filter.IndexOf('/dw/shop/v');
+      if eidx>0 then
+      begin
+        //
+        // OCAPI Shop-API実行ログからサイトIDを取得する
+        result := filter.Substring(sidx+Length('/servlet/s/'), eidx-sidx-Length('/servlet/s/'));
+      end
+      else
+      begin
+        eidx := filter.IndexOf('/dw/data/v');
+        if eidx>0 then
+        begin
+          //
+          // OCAPI Data-API実行ログからサイトIDを取得する
+          result := filter.Substring(sidx+Length('/servlet/s/'), eidx-sidx-Length('/servlet/s/'));
+        end
+      end;
+    end
   end;
 end;
 
@@ -181,7 +223,8 @@ var
   FStr : string;
   FList : TStringList;
   ii : Integer;
-  //FFile: TFile;
+  jj : Integer;
+  FFilter : string;
 begin
   try
     //
@@ -221,7 +264,29 @@ begin
       begin
         if (FList[ii].IndexOf('RepeatedMessageSuppressingFilter')>0) then
         begin
-          FList.Delete(ii);
+          FList.Delete(ii)
+        end
+        else
+        begin
+          //
+          // ログ情報の先頭部分を切り出し、サイトID情報を抽出する
+          // 抽出したサイトID情報は、
+          // フィルター用のサイトID コンボボックスの選択肢情報として
+          // 追加する。ただし、サイトIDは重複しないようにする
+          FFilter := FList[ii].Substring(60,40);
+          FFilter := ExtractSiteID(FFilter);
+          //
+          for jj := 0 to cbSiteID.Items.Count - 1 do
+          begin
+            if String.Compare(cbSiteID.Items[jj], FFilter) = 0 then
+            begin
+              break;
+            end;
+          end;
+          if (cbSiteID.Items.Count - 1) <> jj then
+          begin
+            cbSiteID.Items.Add(FFilter);
+          end;
         end;
       end;
     end;
@@ -249,6 +314,9 @@ begin
   begin
     //Memo1.Lines.Clear;
     Memo1.BeginUpdate;
+    //
+    // ログファイルがドロップされたので、クリップボード曽佐を有効にする
+    btnCopy.Enabled := true;
     //
     // ドロップされたファイル情報を基に、各ファイルをログとして読み込む
     // 読込時に、随時ファイル結合と並べ替えを行う。
