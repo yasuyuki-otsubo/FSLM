@@ -51,7 +51,16 @@ implementation
 
 procedure TForm1.btnClearClick(Sender: TObject);
 begin
+  //
+  // ログ情報を全て消去する
   FRawLog.Clear;
+  //
+  // ログを絞り込むフィルター用サイトID情報を全て消去する
+  cbSiteId.Items.Clear;
+  //
+  // ログ情報がないので、コピー操作を不可にする
+  btnCopy.Enabled := false;
+  //
   Memo1.Lines.Add('総登録行数:'+IntToStr(FRawLog.Count));
 end;
 
@@ -60,17 +69,27 @@ var
   Clipboard: IFMXClipboardService;
   CopyText: string;
 begin
+  //
+  // プラットフォームにてクリップボードが利用できるのかチェックする
   if TPlatformServices.Current.SupportsPlatformService(IFMXClipboardService, Clipboard) then
   begin
+    //
+    // クリップボードへのコピー対象を選択する
     if cbSiteId.ItemIndex>0 then
     begin
+      // フィルターが選択されている場合、ログをフィルターにて抽出する
       CopyText := GetFilteredLogText(cbSiteId.Items[cbSiteId.ItemIndex]);
     end
     else
     begin
+      // 全てのログ情報をコピー対象にする
       CopyText := FRawLog.Text;
     end;
+    //
+    // 出力対象のログデータを取り込み時と同じ状態に戻すため改行を挿入する
     CopyText := StringReplace(CopyText, '=LF;', #13#10, [rfReplaceAll]);
+    //
+    // 対象文字列をクリップボードへコピーする
     Clipboard.SetClipboard(CopyText);
   end;
 end;
@@ -85,7 +104,7 @@ var
   FList : TStringList;
   FStr : String;
 begin
-  if cbSiteId.ItemIndex>0 then
+  if (cbSiteId.Items.Count>0) and (cbSiteId.ItemIndex>0) then
   begin
     Memo1.Lines.Add(cbSiteId.Items[cbSiteId.ItemIndex]);
     FList := TStringList.Create;
@@ -155,11 +174,14 @@ begin
 end;
 
 procedure TForm1.LoadLogFile(filepath: string);
+const
+  TMP_FILENAME : string = 'tmp.txt';
 var
   FReplacer : string;
   FStr : string;
   FList : TStringList;
   ii : Integer;
+  //FFile: TFile;
 begin
   try
     //
@@ -180,11 +202,19 @@ begin
     FReplacer := StringReplace(FStr, '=LF;[', #13#10'[', [rfReplaceAll]);
     FList.Clear;
     FList.Add(FReplacer);
-    FList.SaveToFile('tmp.txt');
+    FList.SaveToFile(TMP_FILENAME);
     //
     // 不要なログ情報を削除する
     FList.Clear;
-    FList.LoadFromFile('tmp.txt', TEncoding.Default);
+    //
+    // プラットフォームのテキストファイル形式にて読み直す
+    // これにより、正しく改行制御を行う
+    FList.LoadFromFile(TMP_FILENAME, TEncoding.Default);
+    //
+    // 作業ファイルを削除する
+    TFile.Delete(TMP_FILENAME);
+    //
+    // ログ情報から不要な情報データを削除する
     if FList.Count>0 then
     begin
       for ii := (FList.Count - 1) downto 0 do
@@ -219,6 +249,9 @@ begin
   begin
     //Memo1.Lines.Clear;
     Memo1.BeginUpdate;
+    //
+    // ドロップされたファイル情報を基に、各ファイルをログとして読み込む
+    // 読込時に、随時ファイル結合と並べ替えを行う。
     for ii := 0 to (Length(Data.Files) - 1) do
     begin
       Memo1.Lines.Add(Data.Files[ii]);
