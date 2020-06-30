@@ -2,7 +2,7 @@ object Form1: TForm1
   Left = 0
   Top = 0
   BorderStyle = ToolWindow
-  Caption = 'SFCC Log merger ver.0.1.29June2020'
+  Caption = 'SFCC Log merger ver.0.9RC build.30-June-2020'
   ClientHeight = 260
   ClientWidth = 465
   FormFactor.Width = 320
@@ -51,10 +51,11 @@ object Form1: TForm1
       OnClick = btnClearClick
     end
     object cbSiteId: TComboBox
-      Align = Client
       Hint = 'Filer log lines by selected site id.'
-      Margins.Top = 20.000000000000000000
-      Margins.Bottom = 20.000000000000000000
+      Margins.Top = 5.000000000000000000
+      Margins.Bottom = 5.000000000000000000
+      Position.X = 130.000000000000000000
+      Position.Y = 32.000000000000000000
       Size.Width = 271.000000000000000000
       Size.Height = 25.000000000000000000
       Size.PlatformDefault = False
@@ -81,6 +82,17 @@ object Form1: TForm1
       StyleLookup = 'cameratoolbutton'
       Text = 'Exit'
       OnClick = btnCopyClick
+    end
+    object Label2: TLabel
+      StyledSettings = [Family, Style, FontColor]
+      Position.X = 130.000000000000000000
+      Size.Width = 271.000000000000000000
+      Size.Height = 33.000000000000000000
+      Size.PlatformDefault = False
+      TextSettings.Font.Size = 15.000000000000000000
+      TextSettings.HorzAlign = Center
+      Text = 'Choose Site-ID to extract log lines.'
+      TabOrder = 3
     end
   end
   object Panel2: TPanel

@@ -22,6 +22,7 @@ type
     btnCopy: TSpeedButton;
     RoundRect1: TRoundRect;
     Label1: TLabel;
+    Label2: TLabel;
     procedure Panel2DragOver(Sender: TObject; const Data: TDragObject;
       const Point: TPointF; var Operation: TDragOperation);
     procedure Panel2DragDrop(Sender: TObject; const Data: TDragObject;
@@ -89,6 +90,7 @@ begin
     //
     // 出力対象のログデータを取り込み時と同じ状態に戻すため改行を挿入する
     CopyText := StringReplace(CopyText, '=LF;', #13#10, [rfReplaceAll]);
+    CopyText := StringReplace(CopyText, #13#10#13#10, #13#10, [rfReplaceAll]);
     //
     // 対象文字列をクリップボードへコピーする
     Clipboard.SetClipboard(CopyText);
@@ -113,10 +115,12 @@ begin
     FStr := StringReplace(FStr, '=LF;', #13#10, [rfReplaceAll]);
     FList.Add(FStr);
     //
+    {
     if not Trim(FList.Text).IsEmpty then
     begin
       FList.SaveToFile('filtered.txt', TEncoding.Default);
     end;
+    }
     FList.Clear;
     FList.Free;
   end;
@@ -193,6 +197,7 @@ function TForm1.GetFilteredLogText(filter: string): string;
 var
   FList : TStringList;
   ii : Integer;
+  FSidx: integer;
 begin
   FList := TStringList.Create;
   try
@@ -202,7 +207,8 @@ begin
       if (FRawLog[ii].IndexOf('Sites-'+filter+'-Site')>= 0) or
          (FRawLog[ii].IndexOf('/s/'+filter+'/dw/')>= 0)  then
       begin
-        FList.Add(FRawLog[ii]);
+        FSidx := FRawLog[ii].IndexOf(#8)+1;
+        FList.Add(FRawLog[ii].Substring(FSidx));
       end;
     end;
   finally
@@ -225,6 +231,8 @@ var
   ii : Integer;
   jj : Integer;
   FFilter : string;
+  FLastFilter: string;
+  FHasIt: boolean;
 begin
   try
     //
@@ -257,11 +265,14 @@ begin
     // 作業ファイルを削除する
     TFile.Delete(TMP_FILENAME);
     //
-    // ログ情報から不要な情報データを削除する
+    // ログファイルをスキャンして、さまざまな処理を行う
     if FList.Count>0 then
     begin
+      FList.BeginUpdate;
       for ii := (FList.Count - 1) downto 0 do
       begin
+        //
+        // ログ情報から不要な情報データを削除する
         if (FList[ii].IndexOf('RepeatedMessageSuppressingFilter')>0) then
         begin
           FList.Delete(ii)
@@ -274,28 +285,53 @@ begin
           // フィルター用のサイトID コンボボックスの選択肢情報として
           // 追加する。ただし、サイトIDは重複しないようにする
           FFilter := FList[ii].Substring(60,40);
-          FFilter := ExtractSiteID(FFilter);
-          //
-          for jj := 0 to cbSiteID.Items.Count - 1 do
+          if String.Compare(FFilter, FLastFilter) <> 0 then
           begin
-            if String.Compare(cbSiteID.Items[jj], FFilter) = 0 then
+            //
+            // フィルター文字列を次回比較のため設定する
+            FLastFilter := FFilter;
+            //
+            // フィルター文字列からサイトIDを抽出し登録する
+            FFilter := ExtractSiteID(FFilter);
+            //
+            // サイトIDが登録済みかチェックする
+            FHasIt := false;
+            for jj := 0 to cbSiteID.Items.Count - 1 do
             begin
-              break;
+              if String.Compare(cbSiteID.Items[jj], FFilter) = 0 then
+              begin
+                FHasIt := true;
+                break;
+              end;
+            end;
+            if (not FHasIt) and (not Trim(FFilter).IsEmpty) then
+            begin
+              cbSiteID.Items.Add(FFilter);
             end;
           end;
-          if (cbSiteID.Items.Count - 1) <> jj then
-          begin
-            cbSiteID.Items.Add(FFilter);
-          end;
+          //
+          //
+          FFilter := FList[ii].Substring(0,29)+IntToStr(ii)+#8;
+          FList[ii] := FFilter + FList[ii];
         end;
       end;
+      FList.EndUpdate;
     end;
     //FList.SaveToFile('newlf2.txt');
     //
     // ログファイルをマージする
     FRawLog.AddStrings(FList);
     FRawLog.Sort;
-    FRawLog.SaveToFile('sorted.txt', TEncoding.Default);
+    {
+    //
+    // デバッグ中にファイルロックで停止するのを防止するため
+    try
+      FRawLog.SaveToFile('sorted.txt', TEncoding.Default);
+    finally
+      //
+      Memo1.Lines.Add('sorted.txt is locked. It may be opened by editor.');
+    end;
+    }
     //
     Memo1.Lines.Add('登録行数:'+IntToStr(FList.Count));
     //Memo1.Lines.AddStrings(FList);
@@ -312,6 +348,9 @@ var
 begin
   if Length(Data.Files) > 0 then
   begin
+    //
+    // 時間を要する処理のためカーソルを待ち状態に変更する
+    RoundRect1.Cursor := crHourGlass;
     //Memo1.Lines.Clear;
     Memo1.BeginUpdate;
     //
@@ -327,6 +366,9 @@ begin
       LoadLogFile(Data.Files[ii]);
     end;
     Memo1.EndUpdate;
+    //
+    // 処理が完了したので、カーソルを基に戻す
+    RoundRect1.Cursor := crDefault;
   end;
 end;
 
