@@ -40,6 +40,7 @@ type
     procedure LoadLogFile(filepath : string);
     function GetFilteredLogText(filter: string): string;
     function ExtractSiteID(filter: string): string;
+    function IsSfccLogFile(filepath: string): boolean;
   public
     { public 宣言 }
   end;
@@ -221,6 +222,31 @@ begin
   FList.Free;
 end;
 
+function TForm1.IsSfccLogFile(filepath: string): boolean;
+var
+  filename: string;
+begin
+  //
+  // デフォルトの戻り値を設定する
+  result := false;
+  //
+  // ファイルパスからファイル名の部分だけ抽出する
+  filename := System.IOUtils.TPath.GetFileName(filepath);
+  if not filename.IsEmpty then
+  begin
+    //
+    // 受け入れるログファイルの名前をチェックする
+    if (filename.IndexOf('customdebug-')=0) or
+       (filename.IndexOf('customerror-')=0) or
+       (filename.IndexOf('custominfo-')=0) or
+       (filename.IndexOf('custom-')=0) or
+       (filename.IndexOf('service-')=0) then
+    begin
+      result := true;
+    end;
+  end;
+end;
+
 procedure TForm1.LoadLogFile(filepath: string);
 const
   TMP_FILENAME : string = 'tmp.txt';
@@ -361,9 +387,14 @@ begin
     // 読込時に、随時ファイル結合と並べ替えを行う。
     for ii := 0 to (Length(Data.Files) - 1) do
     begin
-      Memo1.Lines.Add(Data.Files[ii]);
       //
-      LoadLogFile(Data.Files[ii]);
+      // 処理対象ログファイルをファイル名にてチェックする
+      if IsSfccLogFile(Data.Files[ii]) then
+      begin
+        Memo1.Lines.Add(Data.Files[ii]);
+        //
+        LoadLogFile(Data.Files[ii]);
+      end;
     end;
     Memo1.EndUpdate;
     //
