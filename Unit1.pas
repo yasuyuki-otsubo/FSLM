@@ -23,6 +23,7 @@ type
     RoundRect1: TRoundRect;
     Label1: TLabel;
     Label2: TLabel;
+    cbCommentHeader: TCheckBox;
     procedure Panel2DragOver(Sender: TObject; const Data: TDragObject;
       const Point: TPointF; var Operation: TDragOperation);
     procedure Panel2DragDrop(Sender: TObject; const Data: TDragObject;
@@ -38,9 +39,16 @@ type
     FRawLog : TStringList;
     //
     procedure LoadLogFile(filepath : string);
-    function GetFilteredLogText(filter: string): string;
+    function GetFilteredLog(filter: string): TStringList;
+    // function GetFilteredLogText(filter: string): string;
     function ExtractSiteID(filter: string): string;
+    function ExtractTimestamp(filter: string): string;
+    function ExtractEmail(filter: string): string;
+    function ExtractLine(list: TStringList; target:string): string;
+    function ExtractVersion(filter: string): string;
+    function ExtractWord(filter: string; startword:string; endword:string): string;
     function IsSfccLogFile(filepath: string): boolean;
+    function GetLogHeader(list:TStringList; siteid: string): string;
   public
     { public 宣言 }
   end;
@@ -71,27 +79,63 @@ procedure TForm1.btnCopyClick(Sender: TObject);
 var
   Clipboard: IFMXClipboardService;
   CopyText: string;
+  FList: TStringList;
+  FSiteid: string;
+  //
+  // コメントヘッダ用
+  FCopyHeader: string;
 begin
   //
+  // ローカル変数の初期化
+  FList := nil;
+  FSiteid := '';
+  FCopyHeader := '';
+  //** ---------------------------------------------------------------------
+  //* ログデータベースから指定SiteIDだけのログを抽出する
+  //--------------------------------------------------------------------- */
+  //
   // プラットフォームにてクリップボードが利用できるのかチェックする
-  if TPlatformServices.Current.SupportsPlatformService(IFMXClipboardService, Clipboard) then
+  if not TPlatformServices.Current.SupportsPlatformService(IFMXClipboardService, Clipboard) then
   begin
     //
-    // クリップボードへのコピー対象を選択する
-    if cbSiteId.ItemIndex>=0 then
-    begin
-      // フィルターが選択されている場合、ログをフィルターにて抽出する
-      CopyText := GetFilteredLogText(cbSiteId.Items[cbSiteId.ItemIndex]);
-    end
-    else
-    begin
-      // 全てのログ情報をコピー対象にする
-      CopyText := FRawLog.Text;
-    end;
+    // 利用できない場合、処理を行わず終了する
+    exit;
+  end;
+  //
+  // クリップボードへのコピー対象を選択する
+  if cbSiteId.ItemIndex>=0 then
+  begin
+    FSiteid := cbSiteId.Items[cbSiteId.ItemIndex];
+    // フィルターが選択されている場合、ログをフィルターにて抽出する
+    FList := GetFilteredLog(FSiteid);
+    CopyText := FList.Text;
+  end
+  else
+  begin
+    // 全てのログ情報をコピー対象にする
+    CopyText := FRawLog.Text;
+  end;
+  //
+  // 出力対象のログデータを取り込み時と同じ状態に戻すため改行を挿入する
+  CopyText := StringReplace(CopyText, '=LF;', #13#10, [rfReplaceAll]);
+  CopyText := StringReplace(CopyText, #13#10#13#10, #13#10, [rfReplaceAll]);
+  //
+  //** ---------------------------------------------------------------------
+  //* ログのコメントヘッダを作成する
+  //--------------------------------------------------------------------- */
+  if cbCommentHeader.IsChecked and Assigned(FList) and (FList.Count>0) then
+  begin
     //
-    // 出力対象のログデータを取り込み時と同じ状態に戻すため改行を挿入する
-    CopyText := StringReplace(CopyText, '=LF;', #13#10, [rfReplaceAll]);
-    CopyText := StringReplace(CopyText, #13#10#13#10, #13#10, [rfReplaceAll]);
+    //
+    FCopyHeader := GetLogHeader(FList, FSiteid);
+    FList.Clear;
+    FList.Free;
+    //
+    // 対象文字列をクリップボードへコピーする
+    Clipboard.SetClipboard(FCopyHeader + CopyText);
+  end
+  else
+  begin
     //
     // 対象文字列をクリップボードへコピーする
     Clipboard.SetClipboard(CopyText);
@@ -104,26 +148,40 @@ begin
 end;
 
 procedure TForm1.cbSiteIdChange(Sender: TObject);
-var
-  FList : TStringList;
-  FStr : String;
 begin
   if (cbSiteId.Items.Count>0) then
   begin
     Memo1.Lines.Add(cbSiteId.Items[cbSiteId.ItemIndex]);
-    FList := TStringList.Create;
-    FStr := GetFilteredLogText(cbSiteId.Items[cbSiteId.ItemIndex]);
-    FStr := StringReplace(FStr, '=LF;', #13#10, [rfReplaceAll]);
-    FList.Add(FStr);
-    //
-    {
-    if not Trim(FList.Text).IsEmpty then
+  end;
+end;
+
+function TForm1.ExtractEmail(filter: string): string;
+resourcestring
+  START_WORD1 = '"param":[{"emailAddress":"';
+  END_WORD1   = '"}]}';
+begin
+  result := ExtractWord(filter, START_WORD1, END_WORD1);
+end;
+
+function TForm1.ExtractLine(list: TStringList; target: string): string;
+var
+  ii:integer;
+begin
+  result := '';
+  //
+  if Assigned(list) and (list.Count>0) then
+  begin
+    for ii := 0 to list.Count - 1 do
     begin
-      FList.SaveToFile('filtered.txt', TEncoding.Default);
+      result := list[ii];
+      if result<>'' then
+      begin
+        if result.IndexOf(target)>=0 then
+        begin
+          break;
+        end;
+      end;
     end;
-    }
-    FList.Clear;
-    FList.Free;
   end;
 end;
 
@@ -173,6 +231,74 @@ begin
   end;
 end;
 
+function TForm1.ExtractTimestamp(filter: string): string;
+begin
+  result := filter.Substring(1, 27);
+end;
+
+function TForm1.ExtractVersion(filter: string): string;
+const
+  START_WORD1 = '/dw/shop/';
+  END_WORD1   = '/customers';
+  START_WORD2 = '/dw/shop/';
+  END_WORD2   = '/baskets';
+//var
+//  sidx: integer;
+//  eidx: integer;
+begin
+  result := ExtractWord(filter, START_WORD1, END_WORD1);
+{
+  //
+  // デフォルト戻り値を設定する。サイトIDが無い場合は''を返す。
+  result := '';
+  //
+  sidx := filter.IndexOf(START_WORD1);
+  if sidx>0 then
+  begin
+    eidx := filter.IndexOf(END_WORD1);
+    if eidx>0 then
+    begin
+      //
+      // パイプライン実行ログからサイトIDを取得する
+      result := filter.Substring(sidx+Length(START_WORD1), eidx-sidx-Length(END_WORD1));
+    end
+    else
+    begin
+      eidx := filter.IndexOf(END_WORD2);
+      if eidx>0 then
+      begin
+        //
+        // パイプライン実行ログからサイトIDを取得する
+        result := filter.Substring(sidx+Length(START_WORD2), eidx-sidx-Length(END_WORD2));
+      end
+    end;
+  end;
+}
+end;
+
+function TForm1.ExtractWord(filter, startword, endword: string): string;
+var
+  sidx: integer;
+  eidx: integer;
+begin
+  //
+  // デフォルト戻り値を設定する。サイトIDが無い場合は''を返す。
+  result := '';
+  //
+  sidx := filter.IndexOf(startword);
+  if sidx>=0 then
+  begin
+    eidx := filter.IndexOf(endword);
+    if eidx>sidx then
+    begin
+      //
+      // パイプライン実行ログからサイトIDを取得する
+      //result := filter.Substring(sidx+Length(startword), eidx-sidx-Length(endword));
+      result := filter.Substring(sidx+Length(startword), eidx-sidx-Length(startword));
+    end
+  end;
+end;
+
 procedure TForm1.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
   if Assigned(FRawLog) then
@@ -194,7 +320,7 @@ begin
   Memo1.Lines.Add('登録行数:'+IntToStr(FRawLog.Count))
 end;
 
-function TForm1.GetFilteredLogText(filter: string): string;
+function TForm1.GetFilteredLog(filter: string): TStringList;
 var
   FList : TStringList;
   ii : Integer;
@@ -216,10 +342,75 @@ begin
     FList.EndUpdate;
   end;
   //
-  //FList.SaveToFile('_filtered.txt', TEncoding.Default);
-  Result := FList.Text;
-  FList.Clear;
-  FList.Free;
+  Result := FList;
+  //FList.Clear;
+  //FList.Free;
+end;
+
+function TForm1.GetLogHeader(list:TStringList; siteid: string): string;
+
+  function separater: string;
+  var
+    ii: integer;
+  begin
+    result := '';
+    //
+    for ii := 0 to 79 do
+    begin
+      result := result + '=';
+    end;
+  end;
+
+resourcestring
+  template = '検査ID  　: 記載してください'#13#10
+           + '検査概要　: 記載してください'#13#10
+           + '検査環境　: @instance'#13#10
+           + '検査サイト: @instance @siteid'#13#10
+           + 'OCAPI Ver.: @version'#13#10
+           + '検査装置　: 検査用サーバ'#13#10
+           + 'ログ対象　: 検査用サーバ側にて記録しました。'#13#10
+           + '実施者　　: @email'#13#10
+           + '実施日時　: @timestamp'#13#10;
+var
+  header : string;
+  //
+  FLine: string;
+  FInstance:string;
+  FVersion:string;
+  FEmail:string;
+  FTimestamp:string;
+begin
+  //
+  // ログからヘッダ情報を取得する
+  FInstance := 'Staging / Sandbox';
+  FVersion := '';
+  FEmail := '';
+  FTimestamp := '';
+  //
+  // 抽出したログからヘッダ情報を抽出する
+  if Assigned(list) and (list.Count>0) then
+  begin
+    //
+    FLine := ExtractLine(list, 'ShopAPIServlet');
+    FTimestamp := ExtractTimestamp(FLine);
+    FVersion := ExtractVersion(FLine);
+    //
+    FLine := ExtractLine(list, '"param":[{"emailAddress":"');
+    FEmail := ExtractEmail(FLine);
+  end;
+  //
+  // キーワードでテンプレートを編集する
+  header := StringReplace(template, '@instance', FInstance, [rfReplaceAll]);
+  //
+  header := StringReplace(header, '@siteid', siteid, [rfReplaceAll]);
+  //
+  header := StringReplace(header, '@version', FVersion, [rfReplaceAll]);
+  //
+  header := StringReplace(header, '@email', FEmail, [rfReplaceAll]);
+  //
+  header := StringReplace(header, '@timestamp', FTimestamp, [rfReplaceAll]);
+  //
+  result := separater + #13#10 + header + separater + #13#10 ;
 end;
 
 function TForm1.IsSfccLogFile(filepath: string): boolean;
@@ -248,8 +439,8 @@ begin
 end;
 
 procedure TForm1.LoadLogFile(filepath: string);
-const
-  TMP_FILENAME : string = 'tmp.txt';
+resourcestring
+  TMP_FILENAME = 'tmp.txt';
 var
   FReplacer : string;
   FStr : string;
@@ -271,8 +462,6 @@ begin
     // 一旦 LF改行を取り除く
     FStr := StringReplace(FReplacer, #10, '=LF;', [rfReplaceAll]);
     FList := TStringList.Create;
-    //FList.Add(FStr);
-    //FList.SaveToFile('nolf.txt');
     //
     // 全てタイムスタンプが先頭になるように改行を挿入する
     //FReplacer := StringReplace(FStr, '=LF;[', #10'[', [rfReplaceAll]); // LF

@@ -2,7 +2,7 @@ object Form1: TForm1
   Left = 0
   Top = 0
   BorderStyle = ToolWindow
-  Caption = 'SFCC Log merger ver.0.9RC build.30-June-2020'
+  Caption = 'SFCC Log merger ver.0.9RC2 build.15-July-2020'
   ClientHeight = 260
   ClientWidth = 465
   FormFactor.Width = 320
@@ -130,11 +130,11 @@ object Form1: TForm1
       Align = Client
       Fill.Kind = None
       Margins.Left = 10.000000000000000000
-      Margins.Top = 10.000000000000000000
+      Margins.Top = 20.000000000000000000
       Margins.Right = 10.000000000000000000
       Margins.Bottom = 10.000000000000000000
       Size.Width = 445.000000000000000000
-      Size.Height = 175.000000000000000000
+      Size.Height = 165.000000000000000000
       Size.PlatformDefault = False
       Stroke.Thickness = 5.000000000000000000
       Stroke.Dash = Dash
@@ -152,6 +152,15 @@ object Form1: TForm1
       Text = 'Drop SFCC log files here'
       TabOrder = 3
       OnDragDrop = Panel2DragDrop
+    end
+    object cbCommentHeader: TCheckBox
+      IsChecked = True
+      Position.X = 8.000000000000000000
+      Size.Width = 137.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 5
+      Text = 'with Comment header'
     end
   end
   object ImageList1: TImageList
@@ -1238,7 +1247,7 @@ object Form1: TForm1
             Name = 'clear'
           end>
       end>
-    Left = 16
-    Top = 73
+    Left = 96
+    Top = 89
   end
 end
