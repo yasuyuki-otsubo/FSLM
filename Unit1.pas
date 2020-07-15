@@ -40,7 +40,6 @@ type
     //
     procedure LoadLogFile(filepath : string);
     function GetFilteredLog(filter: string): TStringList;
-    // function GetFilteredLogText(filter: string): string;
     function ExtractSiteID(filter: string): string;
     function ExtractTimestamp(filter: string): string;
     function ExtractEmail(filter: string): string;
@@ -242,38 +241,8 @@ const
   END_WORD1   = '/customers';
   START_WORD2 = '/dw/shop/';
   END_WORD2   = '/baskets';
-//var
-//  sidx: integer;
-//  eidx: integer;
 begin
   result := ExtractWord(filter, START_WORD1, END_WORD1);
-{
-  //
-  // デフォルト戻り値を設定する。サイトIDが無い場合は''を返す。
-  result := '';
-  //
-  sidx := filter.IndexOf(START_WORD1);
-  if sidx>0 then
-  begin
-    eidx := filter.IndexOf(END_WORD1);
-    if eidx>0 then
-    begin
-      //
-      // パイプライン実行ログからサイトIDを取得する
-      result := filter.Substring(sidx+Length(START_WORD1), eidx-sidx-Length(END_WORD1));
-    end
-    else
-    begin
-      eidx := filter.IndexOf(END_WORD2);
-      if eidx>0 then
-      begin
-        //
-        // パイプライン実行ログからサイトIDを取得する
-        result := filter.Substring(sidx+Length(START_WORD2), eidx-sidx-Length(END_WORD2));
-      end
-    end;
-  end;
-}
 end;
 
 function TForm1.ExtractWord(filter, startword, endword: string): string;
@@ -293,7 +262,6 @@ begin
     begin
       //
       // パイプライン実行ログからサイトIDを取得する
-      //result := filter.Substring(sidx+Length(startword), eidx-sidx-Length(endword));
       result := filter.Substring(sidx+Length(startword), eidx-sidx-Length(startword));
     end
   end;
@@ -464,7 +432,6 @@ begin
     FList := TStringList.Create;
     //
     // 全てタイムスタンプが先頭になるように改行を挿入する
-    //FReplacer := StringReplace(FStr, '=LF;[', #10'[', [rfReplaceAll]); // LF
     FReplacer := StringReplace(FStr, '=LF;[', #13#10'[', [rfReplaceAll]);
     FList.Clear;
     FList.Add(FReplacer);
