@@ -390,8 +390,8 @@
         <UWP_DelphiLogo150>images\ms-icon-150x150-2nd.png</UWP_DelphiLogo150>
         <VerInfo_Private>true</VerInfo_Private>
         <VerInfo_AutoIncVersion>true</VerInfo_AutoIncVersion>
-        <VerInfo_Keys>CompanyName=Fishbone, Inc.;FileDescription=$(MSBuildProjectName);FileVersion=0.9.0.7;InternalName=;LegalCopyright=MIT License;LegalTrademarks=Copyright(C) Fishbone, Inc. All rights reserved.;OriginalFilename=;ProgramID=com.fishbonelab.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=;PrivateBuild=</VerInfo_Keys>
-        <VerInfo_Build>7</VerInfo_Build>
+        <VerInfo_Keys>CompanyName=Fishbone, Inc.;FileDescription=$(MSBuildProjectName);FileVersion=0.9.0.13;InternalName=;LegalCopyright=MIT License;LegalTrademarks=Copyright(C) Fishbone, Inc. All rights reserved.;OriginalFilename=;ProgramID=com.fishbonelab.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=;PrivateBuild=</VerInfo_Keys>
+        <VerInfo_Build>13</VerInfo_Build>
         <VerInfo_MajorVer>0</VerInfo_MajorVer>
         <VerInfo_MinorVer>9</VerInfo_MinorVer>
     </PropertyGroup>

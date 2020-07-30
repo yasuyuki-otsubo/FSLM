@@ -42,7 +42,7 @@ type
     function GetFilteredLog(filter: string): TStringList;
     function ExtractSiteID(filter: string): string;
     function ExtractTimestamp(filter: string): string;
-    function ExtractEmail(filter: string): string;
+    function ExtractEmail(filter: string; keyword:string): string;
     function ExtractLine(list: TStringList; target:string): string;
     function ExtractVersion(filter: string): string;
     function ExtractWord(filter: string; startword:string; endword:string): string;
@@ -58,6 +58,8 @@ var
 implementation
 
 {$R *.fmx}
+const
+  CLINE_DELIMITER = #13#10;
 
 procedure TForm1.btnClearClick(Sender: TObject);
 begin
@@ -116,8 +118,8 @@ begin
   end;
   //
   // 出力対象のログデータを取り込み時と同じ状態に戻すため改行を挿入する
-  CopyText := StringReplace(CopyText, '=LF;', #13#10, [rfReplaceAll]);
-  CopyText := StringReplace(CopyText, #13#10#13#10, #13#10, [rfReplaceAll]);
+  CopyText := StringReplace(CopyText, '=LF;', CLINE_DELIMITER, [rfReplaceAll]);
+  CopyText := StringReplace(CopyText, CLINE_DELIMITER+CLINE_DELIMITER, CLINE_DELIMITER, [rfReplaceAll]);
   //
   //** ---------------------------------------------------------------------
   //* ログのコメントヘッダを作成する
@@ -154,12 +156,11 @@ begin
   end;
 end;
 
-function TForm1.ExtractEmail(filter: string): string;
-resourcestring
-  START_WORD1 = '"param":[{"emailAddress":"';
-  END_WORD1   = '"}]}';
+function TForm1.ExtractEmail(filter: string; keyword:string): string;
+const
+  END_WORD1   = '"';
 begin
-  result := ExtractWord(filter, START_WORD1, END_WORD1);
+  result := ExtractWord(filter, keyword, END_WORD1);
 end;
 
 function TForm1.ExtractLine(list: TStringList; target: string): string;
@@ -245,7 +246,7 @@ begin
   result := ExtractWord(filter, START_WORD1, END_WORD1);
 end;
 
-function TForm1.ExtractWord(filter, startword, endword: string): string;
+function TForm1.ExtractWord(filter:string; startword:string; endword: string): string;
 var
   sidx: integer;
   eidx: integer;
@@ -257,7 +258,7 @@ begin
   sidx := filter.IndexOf(startword);
   if sidx>=0 then
   begin
-    eidx := filter.IndexOf(endword);
+    eidx := filter.IndexOf(endword, sidx+Length(startword));
     if eidx>sidx then
     begin
       //
@@ -330,15 +331,18 @@ function TForm1.GetLogHeader(list:TStringList; siteid: string): string;
   end;
 
 resourcestring
-  template = '検査ID  　: 記載してください'#13#10
-           + '検査概要　: 記載してください'#13#10
-           + '検査環境　: @instance'#13#10
-           + '検査サイト: @instance @siteid'#13#10
-           + 'OCAPI Ver.: @version'#13#10
-           + '検査装置　: 検査用サーバ'#13#10
-           + 'ログ対象　: 検査用サーバ側にて記録しました。'#13#10
-           + '実施者　　: @email'#13#10
-           + '実施日時　: @timestamp'#13#10;
+  template = '検査ID  　: 記載してください'+CLINE_DELIMITER
+           + '検査概要　: 記載してください'+CLINE_DELIMITER
+           + '検査環境　: @instance'+CLINE_DELIMITER
+           + '検査サイト: @instance @siteid'+CLINE_DELIMITER
+           + 'OCAPI Ver.: @version'+CLINE_DELIMITER
+           + '検査装置　: 検査用サーバ'+CLINE_DELIMITER
+           + 'ログ対象　: 検査用サーバ側にて記録しました。'+CLINE_DELIMITER
+           + '実施者　　: @email'+CLINE_DELIMITER
+           + '実施日時　: @timestamp'+CLINE_DELIMITER;
+const
+  CKEYWORD_EMAIL1 = '"emailAddress" : "';
+  CKEYWORD_EMAIL2 = '"emailAddress":"';
 var
   header : string;
   //
@@ -363,8 +367,16 @@ begin
     FTimestamp := ExtractTimestamp(FLine);
     FVersion := ExtractVersion(FLine);
     //
-    FLine := ExtractLine(list, '"param":[{"emailAddress":"');
-    FEmail := ExtractEmail(FLine);
+    FLine := ExtractLine(list, CKEYWORD_EMAIL1);
+    if (FLine<>'') then
+    begin
+      FEmail := ExtractEmail(FLine, CKEYWORD_EMAIL1);
+    end
+    else
+    begin
+      FLine := ExtractLine(list, CKEYWORD_EMAIL2);
+      FEmail := ExtractEmail(FLine, CKEYWORD_EMAIL2);
+    end;
   end;
   //
   // キーワードでテンプレートを編集する
@@ -378,7 +390,7 @@ begin
   //
   header := StringReplace(header, '@timestamp', FTimestamp, [rfReplaceAll]);
   //
-  result := separater + #13#10 + header + separater + #13#10 ;
+  result := separater + CLINE_DELIMITER + header + separater + CLINE_DELIMITER ;
 end;
 
 function TForm1.IsSfccLogFile(filepath: string): boolean;
@@ -432,7 +444,7 @@ begin
     FList := TStringList.Create;
     //
     // 全てタイムスタンプが先頭になるように改行を挿入する
-    FReplacer := StringReplace(FStr, '=LF;[', #13#10'[', [rfReplaceAll]);
+    FReplacer := StringReplace(FStr, '=LF;[', CLINE_DELIMITER+'[', [rfReplaceAll]);
     FList.Clear;
     FList.Add(FReplacer);
     FList.SaveToFile(TMP_FILENAME);

@@ -2,7 +2,7 @@ object Form1: TForm1
   Left = 0
   Top = 0
   BorderStyle = ToolWindow
-  Caption = 'SFCC Log merger ver.0.9RC2 build.15-July-2020'
+  Caption = 'SFCC Log merger ver.0.9RC3 build.30-July-2020'
   ClientHeight = 260
   ClientWidth = 465
   FormFactor.Width = 320
