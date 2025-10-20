@@ -1,0 +1,584 @@
+unit Unit1;
+
+{$MODE Delphi}
+
+interface
+
+{uses
+  System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
+  FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.StdCtrls,
+  FMX.Controls.Presentation, FMX.ScrollBox, FMX.Memo, System.ImageList,
+  FMX.ImgList, System.IOUtils, FMX.ListBox, FMX.Objects,
+  FMX.Platform, System.Rtti;}
+uses Forms, Types, Controls, Graphics, Dialogs, StdCtrls, Classes, System.UITypes,
+  ExtCtrls, EditBtn;
+
+type
+  TForm1 = class(TForm)
+    Panel1: TPanel;
+    Panel2: TPanel;
+    Memo1: TMemo;
+    btnExit: TSpeedButton;
+    ImageList1: TImageList;
+    Splitter1: TSplitter;
+    btnClear: TSpeedButton;
+    cbSiteId: TComboBox;
+    btnCopy: TSpeedButton;
+    RoundRect1: TRoundRect;
+    Label1: TLabel;
+    Label2: TLabel;
+    cbCommentHeader: TCheckBox;
+    procedure Panel2DragOver(Sender: TObject; const Data: TDragObject;
+      const Point: TPointF; var Operation: TDragOperation);
+    procedure Panel2DragDrop(Sender: TObject; const Data: TDragObject;
+      const Point: TPointF);
+    procedure btnExitClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure btnClearClick(Sender: TObject);
+    procedure cbSiteIdChange(Sender: TObject);
+    procedure btnCopyClick(Sender: TObject);
+  private
+    { private é¾ }
+    FRawLog : TStringList;
+    //
+    procedure LoadLogFile(filepath : string);
+    function GetFilteredLog(filter: string): TStringList;
+    function ExtractSiteID(filter: string): string;
+    function ExtractTimestamp(filter: string): string;
+    function ExtractEmail(filter: string; keyword:string): string;
+    function ExtractLine(list: TStringList; target:string): string;
+    function ExtractVersion(filter: string): string;
+    function ExtractWord(filter: string; startword:string; endword:string): string;
+    function IsSfccLogFile(filepath: string): boolean;
+    function GetLogHeader(list:TStringList; siteid: string): string;
+  public
+    { public é¾ }
+  end;
+
+var
+  Form1: TForm1;
+
+implementation
+
+{$R *.fmx}
+const
+  CLINE_DELIMITER = #13#10;
+
+procedure TForm1.btnClearClick(Sender: TObject);
+begin
+  //
+  // OîñðSÄÁ·é
+  FRawLog.Clear;
+  //
+  // OðièÞtB^[pTCgIDîñðSÄÁ·é
+  cbSiteId.Items.Clear;
+  //
+  // OîñªÈ¢ÌÅARs[ìðsÂÉ·é
+  btnCopy.Enabled := false;
+  //
+  Memo1.Lines.Add('o^s:'+IntToStr(FRawLog.Count));
+end;
+
+procedure TForm1.btnCopyClick(Sender: TObject);
+var
+  Clipboard: IFMXClipboardService;
+  CopyText: string;
+  FList: TStringList;
+  FSiteid: string;
+  //
+  // Rgwb_p
+  FCopyHeader: string;
+begin
+  //
+  // [JÏÌú»
+  FList := nil;
+  FSiteid := '';
+  FCopyHeader := '';
+  //** ---------------------------------------------------------------------
+  //* Of[^x[X©çwèSiteID¾¯ÌOðo·é
+  //--------------------------------------------------------------------- */
+  //
+  // vbgtH[ÉÄNbv{[hªpÅ«éÌ©`FbN·é
+  if not TPlatformServices.Current.SupportsPlatformService(IFMXClipboardService, Clipboard) then
+  begin
+    //
+    // pÅ«È¢êAðsí¸I¹·é
+    exit;
+  end;
+  //
+  // Nbv{[hÖÌRs[ÎÛðIð·é
+  if cbSiteId.ItemIndex>=0 then
+  begin
+    FSiteid := cbSiteId.Items[cbSiteId.ItemIndex];
+    // tB^[ªIð³êÄ¢éêAOðtB^[ÉÄo·é
+    FList := GetFilteredLog(FSiteid);
+    CopyText := FList.Text;
+  end
+  else
+  begin
+    // SÄÌOîñðRs[ÎÛÉ·é
+    CopyText := FRawLog.Text;
+  end;
+  //
+  // oÍÎÛÌOf[^ðæèÝÆ¯¶óÔÉß·½ßüsð}ü·é
+  CopyText := StringReplace(CopyText, '=LF;', CLINE_DELIMITER, [rfReplaceAll]);
+  CopyText := StringReplace(CopyText, CLINE_DELIMITER+CLINE_DELIMITER, CLINE_DELIMITER, [rfReplaceAll]);
+  //
+  //** ---------------------------------------------------------------------
+  //* OÌRgwb_ðì¬·é
+  //--------------------------------------------------------------------- */
+  if cbCommentHeader.IsChecked and Assigned(FList) and (FList.Count>0) then
+  begin
+    //
+    //
+    FCopyHeader := GetLogHeader(FList, FSiteid);
+    FList.Clear;
+    FList.Free;
+    //
+    // ÎÛ¶ñðNbv{[hÖRs[·é
+    Clipboard.SetClipboard(FCopyHeader + CopyText);
+  end
+  else
+  begin
+    //
+    // ÎÛ¶ñðNbv{[hÖRs[·é
+    Clipboard.SetClipboard(CopyText);
+  end;
+end;
+
+procedure TForm1.btnExitClick(Sender: TObject);
+begin
+  Self.Close;
+end;
+
+procedure TForm1.cbSiteIdChange(Sender: TObject);
+begin
+  if (cbSiteId.Items.Count>0) then
+  begin
+    Memo1.Lines.Add(cbSiteId.Items[cbSiteId.ItemIndex]);
+  end;
+end;
+
+function TForm1.ExtractEmail(filter: string; keyword:string): string;
+const
+  END_WORD1   = '"';
+begin
+  result := ExtractWord(filter, keyword, END_WORD1);
+end;
+
+function TForm1.ExtractLine(list: TStringList; target: string): string;
+var
+  ii:integer;
+begin
+  result := '';
+  //
+  if Assigned(list) and (list.Count>0) then
+  begin
+    for ii := 0 to list.Count - 1 do
+    begin
+      result := list[ii];
+      if result<>'' then
+      begin
+        if result.IndexOf(target)>=0 then
+        begin
+          break;
+        end;
+      end;
+    end;
+  end;
+end;
+
+function TForm1.ExtractSiteID(filter: string): string;
+var
+  sidx: integer;
+  eidx: integer;
+begin
+  //
+  // ftHgßèlðÝè·éBTCgIDª³¢êÍ''ðÔ·B
+  result := '';
+  //
+  sidx := filter.IndexOf('Sites-');
+  if sidx>0 then
+  begin
+    eidx := filter.IndexOf('-Site');
+    if eidx>0 then
+    begin
+      //
+      // pCvCÀsO©çTCgIDðæ¾·é
+      result := filter.Substring(sidx+Length('Sites-'), eidx-sidx-Length('Sites-'));
+    end
+  end
+  else
+  begin
+    sidx := filter.IndexOf('/servlet/s/');
+    if sidx>0 then
+    begin
+      eidx := filter.IndexOf('/dw/shop/v');
+      if eidx>0 then
+      begin
+        //
+        // OCAPI Shop-APIÀsO©çTCgIDðæ¾·é
+        result := filter.Substring(sidx+Length('/servlet/s/'), eidx-sidx-Length('/servlet/s/'));
+      end
+      else
+      begin
+        eidx := filter.IndexOf('/dw/data/v');
+        if eidx>0 then
+        begin
+          //
+          // OCAPI Data-APIÀsO©çTCgIDðæ¾·é
+          result := filter.Substring(sidx+Length('/servlet/s/'), eidx-sidx-Length('/servlet/s/'));
+        end
+      end;
+    end
+  end;
+end;
+
+function TForm1.ExtractTimestamp(filter: string): string;
+begin
+  result := filter.Substring(1, 27);
+end;
+
+function TForm1.ExtractVersion(filter: string): string;
+const
+  START_WORD1 = '/dw/shop/';
+  END_WORD1   = '/customers';
+  START_WORD2 = '/dw/shop/';
+  END_WORD2   = '/baskets';
+begin
+  result := ExtractWord(filter, START_WORD1, END_WORD1);
+end;
+
+function TForm1.ExtractWord(filter:string; startword:string; endword: string): string;
+var
+  sidx: integer;
+  eidx: integer;
+begin
+  //
+  // ftHgßèlðÝè·éBTCgIDª³¢êÍ''ðÔ·B
+  result := '';
+  //
+  sidx := filter.IndexOf(startword);
+  if sidx>=0 then
+  begin
+    eidx := filter.IndexOf(endword, sidx+Length(startword));
+    if eidx>sidx then
+    begin
+      //
+      // pCvCÀsO©çTCgIDðæ¾·é
+      result := filter.Substring(sidx+Length(startword), eidx-sidx-Length(startword));
+    end
+  end;
+end;
+
+procedure TForm1.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+  if Assigned(FRawLog) then
+  begin
+    FRawLog.Clear;
+    FRawLog.Free;
+  end;
+  //
+  Memo1.Lines.Clear;
+end;
+
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+  if not Assigned(FRawLog) then
+  begin
+    FRawLog := TStringList.Create;
+  end;
+  //
+  Memo1.Lines.Add('o^s:'+IntToStr(FRawLog.Count))
+end;
+
+function TForm1.GetFilteredLog(filter: string): TStringList;
+var
+  FList : TStringList;
+  ii : Integer;
+  FSidx: integer;
+begin
+  FList := TStringList.Create;
+  try
+    FList.BeginUpdate;
+    for ii := 0 to FRawLog.Count - 1 do
+    begin
+      if (FRawLog[ii].IndexOf('Sites-'+filter+'-Site')>= 0) or
+         (FRawLog[ii].IndexOf('/s/'+filter+'/dw/')>= 0)  then
+      begin
+        FSidx := FRawLog[ii].IndexOf(#8)+1;
+        FList.Add(FRawLog[ii].Substring(FSidx));
+      end;
+    end;
+  finally
+    FList.EndUpdate;
+  end;
+  //
+  Result := FList;
+  //FList.Clear;
+  //FList.Free;
+end;
+
+function TForm1.GetLogHeader(list:TStringList; siteid: string): string;
+
+  function separater: string;
+  var
+    ii: integer;
+  begin
+    result := '';
+    //
+    for ii := 0 to 79 do
+    begin
+      result := result + '=';
+    end;
+  end;
+
+resourcestring
+  template = '¸ID  @: LÚµÄ­¾³¢'+CLINE_DELIMITER
+           + '¸Tv@: LÚµÄ­¾³¢'+CLINE_DELIMITER
+           + '¸Â«@: @instance'+CLINE_DELIMITER
+           + '¸TCg: @instance @siteid'+CLINE_DELIMITER
+           + 'OCAPI Ver.: @version'+CLINE_DELIMITER
+           + '¸u@: ¸pT[o'+CLINE_DELIMITER
+           + 'OÎÛ@: ¸pT[o¤ÉÄL^µÜµ½B'+CLINE_DELIMITER
+           + 'À{Ò@@: @email'+CLINE_DELIMITER
+           + 'À{ú@: @timestamp'+CLINE_DELIMITER;
+const
+  CKEYWORD_EMAIL1 = '"emailAddress" : "';
+  CKEYWORD_EMAIL2 = '"emailAddress":"';
+var
+  header : string;
+  //
+  FLine: string;
+  FInstance:string;
+  FVersion:string;
+  FEmail:string;
+  FTimestamp:string;
+begin
+  //
+  // O©çwb_îñðæ¾·é
+  FInstance := 'Staging / Sandbox';
+  FVersion := '';
+  FEmail := '';
+  FTimestamp := '';
+  //
+  // oµ½O©çwb_îñðo·é
+  if Assigned(list) and (list.Count>0) then
+  begin
+    //
+    FLine := ExtractLine(list, 'ShopAPIServlet');
+    FTimestamp := ExtractTimestamp(FLine);
+    FVersion := ExtractVersion(FLine);
+    //
+    FLine := ExtractLine(list, CKEYWORD_EMAIL1);
+    if (FLine<>'') then
+    begin
+      FEmail := ExtractEmail(FLine, CKEYWORD_EMAIL1);
+    end
+    else
+    begin
+      FLine := ExtractLine(list, CKEYWORD_EMAIL2);
+      FEmail := ExtractEmail(FLine, CKEYWORD_EMAIL2);
+    end;
+  end;
+  //
+  // L[[hÅev[gðÒW·é
+  header := StringReplace(template, '@instance', FInstance, [rfReplaceAll]);
+  //
+  header := StringReplace(header, '@siteid', siteid, [rfReplaceAll]);
+  //
+  header := StringReplace(header, '@version', FVersion, [rfReplaceAll]);
+  //
+  header := StringReplace(header, '@email', FEmail, [rfReplaceAll]);
+  //
+  header := StringReplace(header, '@timestamp', FTimestamp, [rfReplaceAll]);
+  //
+  result := separater + CLINE_DELIMITER + header + separater + CLINE_DELIMITER ;
+end;
+
+function TForm1.IsSfccLogFile(filepath: string): boolean;
+var
+  filename: string;
+begin
+  //
+  // ftHgÌßèlðÝè·é
+  result := false;
+  //
+  // t@CpX©çt@C¼Ìª¾¯o·é
+  filename := System.IOUtils.TPath.GetFileName(filepath);
+  if not filename.IsEmpty then
+  begin
+    //
+    // ó¯üêéOt@CÌ¼Oð`FbN·é
+    if (filename.IndexOf('customdebug-')=0) or
+       (filename.IndexOf('customerror-')=0) or
+       (filename.IndexOf('custominfo-')=0) or
+       (filename.IndexOf('custom-')=0) or
+       (filename.IndexOf('service-')=0) then
+    begin
+      result := true;
+    end;
+  end;
+end;
+
+procedure TForm1.LoadLogFile(filepath: string);
+resourcestring
+  TMP_FILENAME = 'tmp.txt';
+var
+  FReplacer : string;
+  FStr : string;
+  FList : TStringList;
+  ii : Integer;
+  jj : Integer;
+  FFilter : string;
+  FLastFilter: string;
+  FHasIt: boolean;
+begin
+  try
+    //
+    // hbO³ê½t@CðSÄÇÞ
+    FReplacer := TFile.ReadAllText(filepath, TEncoding.UTF8);
+    // -----------------------------------------
+    //  OîñðPAPsÉÔÒ·é
+    // -----------------------------------------
+    //
+    // êU LFüsðæè­
+    FStr := StringReplace(FReplacer, #10, '=LF;', [rfReplaceAll]);
+    FList := TStringList.Create;
+    //
+    // SÄ^CX^vªæªÉÈéæ¤Éüsð}ü·é
+    FReplacer := StringReplace(FStr, '=LF;[', CLINE_DELIMITER+'[', [rfReplaceAll]);
+    FList.Clear;
+    FList.Add(FReplacer);
+    FList.SaveToFile(TMP_FILENAME);
+    //
+    // svÈOîñðí·é
+    FList.Clear;
+    //
+    // vbgtH[ÌeLXgt@C`®ÉÄÇÝ¼·
+    // ±êÉæèA³µ­üs§äðs¤
+    FList.LoadFromFile(TMP_FILENAME, TEncoding.Default);
+    //
+    // ìÆt@Cðí·é
+    TFile.Delete(TMP_FILENAME);
+    //
+    // Ot@CðXLµÄA³Ü´ÜÈðs¤
+    if FList.Count>0 then
+    begin
+      FList.BeginUpdate;
+      for ii := (FList.Count - 1) downto 0 do
+      begin
+        //
+        // Oîñ©çsvÈîñf[^ðí·é
+        if (FList[ii].IndexOf('RepeatedMessageSuppressingFilter')>0) then
+        begin
+          FList.Delete(ii)
+        end
+        else
+        begin
+          //
+          // OîñÌæªªðØèoµATCgIDîñðo·é
+          // oµ½TCgIDîñÍA
+          // tB^[pÌTCgID R{{bNXÌIðîñÆµÄ
+          // ÇÁ·éB½¾µATCgIDÍd¡µÈ¢æ¤É·é
+          FFilter := FList[ii].Substring(60,40);
+          if String.Compare(FFilter, FLastFilter) <> 0 then
+          begin
+            //
+            // tB^[¶ñðñärÌ½ßÝè·é
+            FLastFilter := FFilter;
+            //
+            // tB^[¶ñ©çTCgIDðoµo^·é
+            FFilter := ExtractSiteID(FFilter);
+            //
+            // TCgIDªo^ÏÝ©`FbN·é
+            FHasIt := false;
+            for jj := 0 to cbSiteID.Items.Count - 1 do
+            begin
+              if String.Compare(cbSiteID.Items[jj], FFilter) = 0 then
+              begin
+                FHasIt := true;
+                break;
+              end;
+            end;
+            if (not FHasIt) and (not Trim(FFilter).IsEmpty) then
+            begin
+              cbSiteID.Items.Add(FFilter);
+            end;
+          end;
+          //
+          //
+          FFilter := FList[ii].Substring(0,29)+IntToStr(ii)+#8;
+          FList[ii] := FFilter + FList[ii];
+        end;
+      end;
+      FList.EndUpdate;
+    end;
+    //FList.SaveToFile('newlf2.txt');
+    //
+    // Ot@Cð}[W·é
+    FRawLog.AddStrings(FList);
+    FRawLog.Sort;
+    {
+    //
+    // fobOÉt@CbNÅâ~·éÌðh~·é½ß
+    try
+      FRawLog.SaveToFile('sorted.txt', TEncoding.Default);
+    finally
+      //
+      Memo1.Lines.Add('sorted.txt is locked. It may be opened by editor.');
+    end;
+    }
+    //
+    Memo1.Lines.Add('o^s:'+IntToStr(FList.Count));
+    //Memo1.Lines.AddStrings(FList);
+    Memo1.Lines.Add('o^s:'+IntToStr(FRawLog.Count));
+  finally
+    FReplacer := '';
+  end;
+end;
+
+procedure TForm1.Panel2DragDrop(Sender: TObject; const Data: TDragObject;
+  const Point: TPointF);
+var
+  ii: Integer;
+begin
+  if Length(Data.Files) > 0 then
+  begin
+    //
+    // Ôðv·éÌ½ßJ[\ðÒ¿óÔÉÏX·é
+    RoundRect1.Cursor := crHourGlass;
+    //Memo1.Lines.Clear;
+    Memo1.BeginUpdate;
+    //
+    // Ot@Cªhbv³ê½ÌÅANbv{[h]²ðLøÉ·é
+    btnCopy.Enabled := true;
+    //
+    // hbv³ê½t@CîñðîÉAet@CðOÆµÄÇÝÞ
+    // ÇÉAt@CÆÀ×Ö¦ðs¤B
+    for ii := 0 to (Length(Data.Files) - 1) do
+    begin
+      //
+      // ÎÛOt@Cðt@C¼ÉÄ`FbN·é
+      if IsSfccLogFile(Data.Files[ii]) then
+      begin
+        Memo1.Lines.Add(Data.Files[ii]);
+        //
+        LoadLogFile(Data.Files[ii]);
+      end;
+    end;
+    Memo1.EndUpdate;
+    //
+    // ª®¹µ½ÌÅAJ[\ðîÉß·
+    RoundRect1.Cursor := crDefault;
+  end;
+end;
+
+procedure TForm1.Panel2DragOver(Sender: TObject; const Data: TDragObject;
+  const Point: TPointF; var Operation: TDragOperation);
+begin
+    Operation := TDragOperation.Copy;
+end;
+
+end.
